@@ -23,5 +23,5 @@ AC_PROG_LIBTOOL
 
 m4_include([libev.m4])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile test/Makefile])
 AC_OUTPUT
