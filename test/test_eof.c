@@ -1,3 +1,4 @@
+/* read/write and timeout for detect blocking */
 #include <stdio.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -20,10 +21,10 @@ int set_nonblock(int fd) {
 	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-// another callback, this time for a time-out
+/* another callback, this time for a time-out */
 static void timeout_cb(EV_P_ ev_timer *w, int revents) {
 	puts("timeout");
-	// this causes the innermost ev_run to stop iterating
+	/* this causes the innermost ev_run to stop iterating */
 	ev_break(EV_A_ EVBREAK_ONE);
 }
 
