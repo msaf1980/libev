@@ -8,8 +8,10 @@ AM_LDFLAGS = -lz -lpthread -L${top_srcdir}/.libs -lev
 check_PROGRAMS = \
 	test/test_eof \
 	test/test_timeout
+	test/test_tcp_reset
 
 TESTS = $(check_PROGRAMS)
 
 test_test_eof_SOURCES = test/test_eof.c
 test_test_timeout_SOURCES = test/test_timeout.c
+test_test_tcp_reset_SOURCES = test/test_tcp_reset.c
