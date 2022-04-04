@@ -1,4 +1,7 @@
-project ( libev C )
+option( BUILD_TESTING "build tests" OFF )
+option( BUILD_EXAMPLES "build examples" OFF )
+
+project ( libev C CXX )
 cmake_minimum_required ( VERSION 3.0 )
 include ( CMake/dist.cmake )
 include ( CMake/configure.cmake )
@@ -21,3 +24,18 @@ target_link_libraries ( ev ${EV_LIBS} )
 install_library ( ev )
 install_header ( ev.h ev++.h event.h )
 install_data ( LICENSE README )
+
+if(BUILD_TESTING OR BUILD_EXAMPLES)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads REQUIRED)
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+  subdirs( test )
+  subdirs( bench )
+endif()
+
+if(BUILD_EXAMPLES)
+  subdirs( examples )
+endif()

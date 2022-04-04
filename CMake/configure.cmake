@@ -40,7 +40,7 @@ check_function_exists ( select HAVE_SELECT )
 check_function_exists ( signalfd HAVE_SIGNALFD )
 
 if ( CMAKE_SYSTEM_NAME STREQUAL Linux OR CMAKE_SYSTEM_NAME STREQUAL Android )
-    set ( CMAKE_REQUIRED_LIBRARIES "m" )
+    # set ( CMAKE_REQUIRED_LIBRARIES "m" )
     set ( CMAKE_EXTRA_INCLUDE_FILES "linux/fs.h" )
 endif()
 
