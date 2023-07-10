@@ -39,7 +39,7 @@ timer_cb(EV_P_ ev_timer *w, int revents) {}
 static void
 read_cb(EV_P_ ev_io *w, int revents)
 {
-	int idx = (int) w->data, widx = idx + 1;
+	size_t idx = (size_t) w->data, widx = idx + 1;
 	unsigned char ch;
 	ssize_t n;
 
@@ -119,18 +119,19 @@ main(int argc, char **argv)
 #ifdef EVENT__HAVE_SETRLIMIT
 	struct rlimit rl;
 #endif
-	int i, c;
+	size_t i;
+	int c;
 	struct timeval *tv;
 	int *cp;
-	// const char **methods;
-	// const char *method = NULL;
-	// struct event_config *cfg = NULL;
+	unsigned int flags = 0, backends = 0;
+	const char *method = NULL;
+
+	long duration, sum_duration = 0;
 
 	num_pipes = 100;
 	num_active = 1;
 	num_writes = num_pipes;
-	// while ((c = getopt(argc, argv, "n:a:w:m:l")) != -1) {
-    while ((c = getopt(argc, argv, "n:a:w:")) != -1) {
+	while ((c = getopt(argc, argv, "n:a:w:m:l")) != -1) {
 		switch (c) {
 		case 'n':
 			num_pipes = atoi(optarg);
@@ -141,16 +142,61 @@ main(int argc, char **argv)
 		case 'w':
 			num_writes = atoi(optarg);
 			break;
-		// case 'm':
-		// 	method = optarg;
-		// 	break;
-		// case 'l':
-		// 	methods = event_get_supported_methods();
-		// 	fprintf(stdout, "Using Libevent %s. Available methods are:\n",
-		// 		event_get_version());
-		// 	for (i = 0; methods[i] != NULL; ++i)
-		// 		printf("    %s\n", methods[i]);
-		// 	exit(0);
+		case 'm':
+			method = optarg;
+			if (strcmp(method, "select") == 0)
+				flags |= EVBACKEND_SELECT;
+			else if (strcmp(method, "poll") == 0)
+				flags |= EVBACKEND_POLL;
+			else if (strcmp(method, "epoll") == 0)
+				flags |= EVBACKEND_EPOLL;
+  			else if (strcmp(method, "kqueue") == 0)
+				flags |= EVBACKEND_KQUEUE;
+  			else if (strcmp(method, "devpoll") == 0)
+				flags |= EVBACKEND_DEVPOLL;
+  			else if (strcmp(method, "port") == 0)
+				flags |= EVBACKEND_PORT;
+  			else if (strcmp(method, "linuxaio") == 0)
+				flags |= EVBACKEND_LINUXAIO;
+  			else if (strcmp(method, "io_uring") == 0)
+				flags |= EVBACKEND_IOURING;
+			else {
+				fprintf(stderr, "Unsupported backend \"%s\"\n", method);
+				exit(1);
+			}
+			if (!(ev_supported_backends() & flags)) {
+				fprintf(stderr, "Unsupported backend \"%s\", flags is %x\n", method, flags);
+				exit(1);
+			}
+			break;
+		case 'l':
+			backends = ev_supported_backends();
+			printf("Available backends are:\n");
+			if (backends &  EVBACKEND_SELECT) {
+				printf("    select\n");
+			}
+			if (backends &  EVBACKEND_POLL) {
+				printf("    poll\n");
+			}
+			if (backends &  EVBACKEND_EPOLL) {
+				printf("    epoll\n");
+			}
+			if (backends &  EVBACKEND_KQUEUE) {
+				printf("    kqueue\n");
+			}
+			if (backends &  EVBACKEND_DEVPOLL) {
+				printf("    devpoll\n");
+			}
+			if (backends &  EVBACKEND_PORT) {
+				printf("    port\n");
+			}
+			if (backends &  EVBACKEND_LINUXAIO) {
+				printf("    linux aio\n");
+			}
+			if (backends &  EVBACKEND_IOURING) {
+				printf("    io_uring\n");
+			}
+			exit(0);
 		default:
 			fprintf(stderr, "Illegal argument \"%c\"\n", c);
 			exit(1);
@@ -173,17 +219,6 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	// if (method != NULL) {
-	// 	cfg = event_config_new();
-	// 	methods = event_get_supported_methods();
-	// 	for (i = 0; methods[i] != NULL; ++i)
-	// 		if (strcmp(methods[i], method))
-	// 			event_config_avoid_method(cfg, methods[i]);
-	// 	base = event_base_new_with_config(cfg);
-	// 	event_config_free(cfg);
-	// } else
-	// 	base = event_base_new();
-
 	for (cp = pipes, i = 0; i < num_pipes; i++, cp += 2) {
 #ifdef USE_PIPES
 		if (pipe(cp) == -1) {
@@ -200,15 +235,19 @@ main(int argc, char **argv)
         ev_timer_init(&timers[i], timer_cb, 1.0, 0);        
 	}
 
-    loop = EV_DEFAULT;
+    loop = ev_default_loop(flags);
 
 	for (i = 0; i < 25; i++) {
 		tv = run_once();
 		if (tv == NULL)
 			exit(1);
-		fprintf(stdout, "%ld ms (total %d, active %d)\n",
-			tv->tv_sec * 1000000L + tv->tv_usec, num_pipes, num_active);
+		duration = tv->tv_sec * 1000000L + tv->tv_usec;
+		sum_duration += duration;
+		fprintf(stdout, "%ld us (total %d, active %d)\n",
+			duration, num_pipes, num_active);
 	}
+	fprintf(stdout, "average %ld us (total %d, active %d)\n",
+			sum_duration/25, num_pipes, num_active);
 
 	exit(0);
 }
